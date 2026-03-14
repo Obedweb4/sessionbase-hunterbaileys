@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hunter-xmd-pro-session
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node voltah.js
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production

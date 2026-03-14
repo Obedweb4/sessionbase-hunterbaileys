@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HUNTER XMD PRO — Pair Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg:     #060a06;
+      --panel:  rgba(10,18,10,0.9);
+      --green:  #00ff88;
+      --green2: #00cc66;
+      --amber:  #ff9500;
+      --red:    #ff4444;
+      --white:  #e8f5e8;
+      --muted:  rgba(180,220,180,0.45);
+      --border: rgba(0,255,136,0.12);
+      --bh:     rgba(0,255,136,0.28);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{min-height:100vh;font-family:'DM Mono',monospace;background:var(--bg);color:var(--white);overflow-x:hidden;cursor:none;}
+
+    /* cursor */
+    #cur{position:fixed;width:6px;height:6px;background:var(--green);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 10px var(--green);}
+    #curR{position:fixed;width:28px;height:28px;border:1px solid rgba(0,255,136,0.35);border-radius:2px;pointer-events:none;z-index:9998;transform:translate(-50%,-50%) rotate(45deg);transition:width .3s,height .3s;}
+
+    /* bg */
+    .bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");opacity:.5;}
+    .bg-grid{position:fixed;inset:0;z-index:1;pointer-events:none;background-image:linear-gradient(rgba(0,255,136,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.025) 1px,transparent 1px);background-size:40px 40px;}
+    .bg-glow{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(0,255,136,0.06) 0%,transparent 65%);}
+    .scanline{position:fixed;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px);}
+
+    /* back */
+    .back{position:fixed;top:1.5rem;left:1.5rem;z-index:20;display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;background:rgba(6,10,6,0.9);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--muted);text-decoration:none;font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:1px;text-transform:uppercase;transition:all .3s;}
+    .back:hover{border-color:var(--bh);color:var(--green);transform:translateX(-3px);}
+
+    /* layout */
+    .wrap{position:relative;z-index:10;min-height:100vh;display:grid;grid-template-columns:1fr 1.4fr;max-width:1000px;margin:0 auto;}
+
+    /* LEFT PANEL */
+    .left{padding:6rem 2.5rem 3rem;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--border);}
+    .left-top{}
+    .left-tag{font-size:.6rem;color:var(--green);letter-spacing:3px;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:.6rem;}
+    .left-tag::before{content:'';width:18px;height:1px;background:var(--green);}
+    .left-title{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;line-height:1.05;color:#fff;margin-bottom:1rem;}
+    .left-title .hl{color:var(--green);}
+    .left-sub{font-size:.73rem;color:var(--muted);line-height:1.6;margin-bottom:2rem;}
+    .left-by{font-size:.65rem;color:rgba(180,220,180,0.3);font-family:'Space Mono',monospace;}
+    .left-by strong{color:var(--amber);}
+
+    .steps-list{display:flex;flex-direction:column;gap:0;}
+    .step-item{display:flex;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border);position:relative;}
+    .step-item:last-child{border-bottom:none;}
+    .step-num{width:28px;height:28px;flex-shrink:0;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .step-item.active .step-num{border-color:var(--bh);color:var(--green);background:rgba(0,255,136,0.05);}
+    .step-item.done .step-num{border-color:var(--green2);color:var(--green);background:rgba(0,255,136,0.08);}
+    .step-txt{padding-top:.2rem;}
+    .step-name{font-family:'Space Mono',monospace;font-size:.7rem;color:#fff;margin-bottom:.2rem;}
+    .step-item.active .step-name{color:var(--green);}
+    .step-desc{font-size:.67rem;color:var(--muted);}
+
+    .left-info{margin-top:auto;padding-top:2rem;display:flex;flex-direction:column;gap:.5rem;}
+    .info-row{display:flex;align-items:center;gap:.7rem;font-size:.65rem;color:var(--muted);}
+    .info-row i{color:var(--green);width:12px;}
+
+    /* RIGHT PANEL */
+    .right{padding:6rem 2.5rem 3rem;display:flex;flex-direction:column;gap:1.5rem;}
+
+    .r-head{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;display:flex;align-items:center;gap:.7rem;}
+    .r-head::before{content:'>';color:var(--green);}
+
+    /* input area */
+    .input-block{}
+    .input-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem;}
+    .input-label i{color:var(--green);}
+    .input-row{display:flex;border:1px solid var(--border);background:rgba(0,0,0,0.5);transition:border-color .3s;}
+    .input-row:focus-within{border-color:var(--bh);}
+    .input-pfx{padding:.9rem 1rem;background:rgba(0,255,136,0.04);border-right:1px solid var(--border);font-family:'Space Mono',monospace;font-size:.9rem;color:var(--green);display:flex;align-items:center;}
+    .input-row input{flex:1;padding:.9rem 1rem;background:transparent;border:none;outline:none;color:#fff;font-family:'Space Mono',monospace;font-size:.9rem;letter-spacing:2px;}
+    .input-row input::placeholder{color:rgba(180,220,180,0.2);font-family:'DM Mono',monospace;letter-spacing:0;font-size:.8rem;}
+
+    /* btn */
+    .gen-btn{width:100%;padding:1rem 1.5rem;background:var(--green);border:none;color:#060a06;font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+    .gen-btn::after{content:'';position:absolute;top:-100%;left:-100%;width:300%;height:300%;background:radial-gradient(circle,rgba(255,255,255,0.25) 0%,transparent 60%);transition:opacity .5s;opacity:0;}
+    .gen-btn:hover::after{opacity:1;}
+    .gen-btn:hover{background:#00ff99;transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,255,136,0.3);}
+    .gen-btn:active{transform:translateY(0);}
+    .gen-btn:disabled{background:rgba(0,255,136,0.2);color:rgba(0,255,136,0.4);cursor:not-allowed;transform:none;box-shadow:none;}
+
+    /* waiting */
+    #waiting{display:none;padding:1rem;border:1px solid var(--border);background:rgba(0,0,0,0.3);}
+    .wait-row{display:flex;align-items:center;gap:.8rem;font-size:.72rem;color:var(--muted);margin-bottom:.8rem;}
+    .wait-dots{display:flex;gap:4px;}
+    .wait-dots span{width:5px;height:5px;border-radius:50%;animation:dotpop 1.4s infinite;}
+    .wait-dots span:nth-child(1){background:var(--green);}
+    .wait-dots span:nth-child(2){background:var(--amber);animation-delay:.2s;}
+    .wait-dots span:nth-child(3){background:var(--green2);animation-delay:.4s;}
+    @keyframes dotpop{0%,80%,100%{transform:scale(.5);opacity:.3;}40%{transform:scale(1);opacity:1;}}
+    .prog-track{height:2px;background:rgba(0,255,136,0.08);}
+    .prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--amber));animation:prog 25s ease-out forwards;}
+    @keyframes prog{0%{width:0%;}30%{width:40%;}65%{width:70%;}90%{width:88%;}100%{width:95%;}}
+
+    /* result */
+    #result{min-height:60px;}
+    .code-box{border:1px solid rgba(0,255,136,0.25);background:rgba(0,255,136,0.04);padding:1.5rem;cursor:pointer;position:relative;overflow:hidden;transition:border-color .3s;}
+    .code-box:hover{border-color:rgba(0,255,136,0.5);}
+    .code-box::before{content:'// TAP TO COPY';position:absolute;top:.5rem;right:.8rem;font-size:.55rem;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:1px;}
+    .code-label{font-size:.6rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.6rem;}
+    .code-val{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--green);letter-spacing:5px;text-shadow:0 0 20px rgba(0,255,136,0.4);}
+    .copy-tag{margin-top:.7rem;font-size:.62rem;color:var(--muted);display:flex;align-items:center;gap:.4rem;}
+    .copy-ok{color:var(--green)!important;}
+    .err-box{border:1px solid rgba(255,68,68,0.25);background:rgba(255,68,68,0.04);padding:1rem;font-size:.75rem;color:#ff6b6b;display:flex;align-items:center;gap:.7rem;}
+
+    /* mini stats */
+    .mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
+    .ms{padding:.9rem;border:1px solid var(--border);text-align:center;}
+    .ms-val{font-family:'Space Mono',monospace;font-size:.95rem;color:#fff;font-weight:700;}
+    .ms-key{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:.3rem;}
+
+    /* tips */
+    .tips{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+    .tip{padding:.8rem;border:1px solid var(--border);background:rgba(0,0,0,0.3);display:flex;gap:.7rem;align-items:flex-start;}
+    .tip i{color:var(--green);font-size:.7rem;margin-top:2px;flex-shrink:0;}
+    .tip span{font-size:.68rem;color:var(--muted);line-height:1.45;}
+
+    @media(max-width:768px){
+      .wrap{grid-template-columns:1fr;}
+      .left{display:none;}
+      .right{padding:5rem 1.5rem 2rem;}
+      body{cursor:auto;}#cur,#curR{display:none;}
+    }
+  </style>
+</head>
+<body>
+  <div id="cur"></div>
+  <div id="curR"></div>
+  <div class="bg-noise"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="scanline"></div>
+
+  <a href="/" class="back"><i class="fas fa-arrow-left"></i> Back</a>
+
+  <div class="wrap">
+    <!-- LEFT -->
+    <div class="left">
+      <div class="left-top">
+        <div class="left-tag">Pair Code Method</div>
+        <div class="left-title">Connect<br>Your <span class="hl">Session</span></div>
+        <div class="left-sub">Enter your WhatsApp number and we'll generate a unique pairing code. Open WhatsApp → Linked Devices → Link a Device and type the code.</div>
+        <div class="left-by">// Powered by <strong>OBED TECH DEVELOPER</strong></div>
+      </div>
+
+      <div class="steps-list" id="stepsList">
+        <div class="step-item active" id="s1">
+          <div class="step-num">01</div>
+          <div class="step-txt">
+            <div class="step-name">Enter Number</div>
+            <div class="step-desc">Full number with country code, no + sign</div>
+          </div>
+        </div>
+        <div class="step-item" id="s2">
+          <div class="step-num">02</div>
+          <div class="step-txt">
+            <div class="step-name">Generating</div>
+            <div class="step-desc">Connecting to WhatsApp servers</div>
+          </div>
+        </div>
+        <div class="step-item" id="s3">
+          <div class="step-num">03</div>
+          <div class="step-txt">
+            <div class="step-name">Enter Code</div>
+            <div class="step-desc">Type code in WhatsApp Linked Devices</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="left-info">
+        <div class="info-row"><i class="fas fa-lock"></i>End-to-end encrypted</div>
+        <div class="info-row"><i class="fas fa-database"></i>No credentials stored</div>
+        <div class="info-row"><i class="fas fa-clock"></i>Code expires in 60 seconds</div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+      <div class="r-head">hunter-xmd-pro / session / pair-code</div>
+
+      <div class="input-block">
+        <div class="input-label"><i class="fas fa-phone-alt"></i> WhatsApp Number</div>
+        <div class="input-row">
+          <div class="input-pfx">+</div>
+          <input type="number" id="number" placeholder="254792021944 (with country code)">
+        </div>
+      </div>
+
+      <button class="gen-btn" id="submitBtn"><i class="fas fa-terminal"></i> &nbsp;GENERATE PAIR CODE</button>
+
+      <div id="waiting">
+        <div class="wait-row">
+          <div class="wait-dots"><span></span><span></span><span></span></div>
+          <span>Connecting to WhatsApp servers...</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      </div>
+
+      <div id="result"></div>
+
+      <div>
+        <div class="input-label" style="margin-bottom:.8rem;"><i class="fas fa-chart-bar"></i> Live Stats</div>
+        <div class="mini-stats">
+          <div class="ms"><div class="ms-val" id="msTotal">--</div><div class="ms-key">Total Paired</div></div>
+          <div class="ms"><div class="ms-val" id="msRate">--%</div><div class="ms-key">Success</div></div>
+          <div class="ms"><div class="ms-val" id="msOnline">--</div><div class="ms-key">Online</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="input-label" style="margin-bottom:.8rem;"><i class="fas fa-info-circle"></i> Quick Tips</div>
+        <div class="tips">
+          <div class="tip"><i class="fas fa-hashtag"></i><span>No + sign. Start with country code (e.g. 254 for Kenya)</span></div>
+          <div class="tip"><i class="fas fa-hourglass-half"></i><span>Code valid for 60 seconds only — enter it fast</span></div>
+          <div class="tip"><i class="fas fa-mobile-alt"></i><span>WhatsApp → ⋮ Menu → Linked Devices → Link a Device</span></div>
+          <div class="tip"><i class="fas fa-redo"></i><span>Expired? Just tap Generate again for a new code</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+  // cursor
+  const cur=document.getElementById('cur'),curR=document.getElementById('curR');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+  (function lp(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(lp);})();
+
+  function setStep(n){
+    ['s1','s2','s3'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      el.classList.remove('active','done');
+      if(i+1<n) el.classList.add('done');
+      if(i+1===n) el.classList.add('active');
+    });
+  }
+
+  const btn=document.getElementById('submitBtn');
+  const numEl=document.getElementById('number');
+  const waitEl=document.getElementById('waiting');
+  const resEl=document.getElementById('result');
+
+  async function copyCode(txt){
+    try{
+      await navigator.clipboard.writeText(txt);
+      document.querySelector('.copy-tag').innerHTML='<i class="fas fa-check copy-ok"></i><span class="copy-ok">Copied to clipboard!</span>';
+      setTimeout(()=>{document.querySelector('.copy-tag').innerHTML='<i class="fas fa-copy"></i><span>Click code to copy</span>';},2000);
+    }catch(e){}
+  }
+
+  btn.addEventListener('click',async()=>{
+    const raw=numEl.value.replace(/[^0-9]/g,'');
+    if(!raw){resEl.innerHTML='<div class="err-box"><i class="fas fa-exclamation-triangle"></i> Enter your number with country code</div>';return;}
+    if(raw.length<10){resEl.innerHTML='<div class="err-box"><i class="fas fa-exclamation-triangle"></i> Number too short — include country code</div>';return;}
+
+    setStep(2);
+    btn.disabled=true;
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> &nbsp;GENERATING...';
+    resEl.innerHTML='';
+    waitEl.style.display='block';
+    // reset progress bar
+    const pf=document.getElementById('progFill');
+    pf.style.animation='none';void pf.offsetHeight;pf.style.animation='prog 25s ease-out forwards';
+
+    try{
+      const {data}=await axios('/code?number='+raw);
+      const code=data.code||'Unavailable';
+      setStep(3);
+      resEl.innerHTML=`
+        <div class="code-box" onclick="copyCode('${code}')">
+          <div class="code-label">Your Pair Code</div>
+          <div class="code-val">${code}</div>
+          <div class="copy-tag"><i class="fas fa-copy"></i><span>Click code to copy</span></div>
+        </div>`;
+    }catch(e){
+      setStep(1);
+      resEl.innerHTML='<div class="err-box"><i class="fas fa-exclamation-triangle"></i> Service unavailable — please try again</div>';
+    }finally{
+      waitEl.style.display='none';
+      btn.disabled=false;
+      btn.innerHTML='<i class="fas fa-terminal"></i> &nbsp;GENERATE PAIR CODE';
+    }
+  });
+
+  function animVal(el,end,dur,suf){suf=suf||'';const s=performance.now();(function step(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.floor(end*e).toLocaleString()+suf;if(p<1)requestAnimationFrame(step);})(s);}
+  async function loadStats(){
+    try{
+      const d=await(await fetch('/api/stats')).json();
+      animVal(document.getElementById('msTotal'),d.totalPairings,1500);
+      document.getElementById('msRate').textContent=parseFloat(d.successRate).toFixed(1)+'%';
+      animVal(document.getElementById('msOnline'),d.activeUsers,1000);
+    }catch(e){}
+  }
+  loadStats();setInterval(loadStats,30000);
+  </script>
+</body>
+</html>

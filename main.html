@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HUNTER XMD PRO — Session Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg:      #060a06;
+      --bg2:     #0c110c;
+      --panel:   rgba(12,20,12,0.85);
+      --green:   #00ff88;
+      --green2:  #00cc66;
+      --amber:   #ff9500;
+      --red:     #ff3e3e;
+      --white:   #e8f5e8;
+      --muted:   rgba(180,220,180,0.45);
+      --border:  rgba(0,255,136,0.12);
+      --border2: rgba(0,255,136,0.25);
+      --glow:    0 0 20px rgba(0,255,136,0.15);
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      min-height:100vh;
+      font-family:'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--white);
+      overflow-x:hidden;
+      cursor:none;
+    }
+
+    /* ── CURSOR ── */
+    #cur {
+      position:fixed; width:6px; height:6px;
+      background:var(--green); border-radius:50%;
+      pointer-events:none; z-index:9999;
+      transform:translate(-50%,-50%);
+      box-shadow: 0 0 12px var(--green), 0 0 24px rgba(0,255,136,0.5);
+      transition: width .2s, height .2s;
+    }
+    #curR {
+      position:fixed; width:28px; height:28px;
+      border:1px solid rgba(0,255,136,0.4);
+      border-radius:2px;
+      pointer-events:none; z-index:9998;
+      transform:translate(-50%,-50%) rotate(45deg);
+      transition: width .3s, height .3s, border-color .3s;
+    }
+
+    /* ── BACKGROUND ── */
+    .bg-noise {
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      opacity:.6;
+    }
+    .bg-grid {
+      position:fixed; inset:0; z-index:1; pointer-events:none;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .bg-radial {
+      position:fixed; inset:0; z-index:2; pointer-events:none;
+      background:
+        radial-gradient(ellipse 70% 60% at 50% 0%, rgba(0,255,136,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 90% 100%, rgba(255,149,0,0.05) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 30% at 10% 60%, rgba(0,255,136,0.04) 0%, transparent 50%);
+    }
+    .scanline {
+      position:fixed; inset:0; z-index:3; pointer-events:none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+    }
+
+    /* ── LAYOUT ── */
+    .wrap {
+      position:relative; z-index:10;
+      max-width:1000px; margin:0 auto;
+      padding:3rem 1.5rem 4rem;
+      display:flex; flex-direction:column; gap:2.5rem; align-items:stretch;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.7rem 1.2rem;
+      border:1px solid var(--border);
+      background:var(--panel);
+      backdrop-filter:blur(12px);
+      border-radius:4px;
+    }
+    .topbar-left {
+      font-family:'Space Mono', monospace;
+      font-size:.65rem; color:var(--muted);
+      display:flex; align-items:center; gap:1rem;
+    }
+    .topbar-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 8px var(--green);
+      animation:blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+    .topbar-right {
+      font-family:'Space Mono', monospace;
+      font-size:.62rem; color:var(--muted);
+      display:flex; align-items:center; gap:1.5rem;
+    }
+    .topbar-right span { color:var(--green); }
+
+    /* ── HERO ── */
+    .hero {
+      display:grid; grid-template-columns:1fr auto;
+      gap:2rem; align-items:center;
+      padding:3rem 0 2rem;
+      border-bottom:1px solid var(--border);
+      animation:fadeUp .8s ease both;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+    .hero-left {}
+    .hero-tag {
+      font-family:'Space Mono',monospace;
+      font-size:.62rem; color:var(--green);
+      letter-spacing:3px; text-transform:uppercase;
+      display:flex; align-items:center; gap:.6rem;
+      margin-bottom:1.2rem;
+    }
+    .hero-tag::before {
+      content:''; display:inline-block;
+      width:24px; height:1px; background:var(--green);
+    }
+    .hero-title {
+      font-family:'Syne', sans-serif;
+      font-size:clamp(2.4rem,5vw,4rem);
+      font-weight:800; line-height:1;
+      color:#fff;
+      letter-spacing:-1px;
+    }
+    .hero-title .hl {
+      color:var(--green);
+      text-shadow:0 0 40px rgba(0,255,136,0.4);
+      display:block;
+    }
+    .hero-title .sm {
+      font-size:.45em; color:var(--amber);
+      font-weight:700; letter-spacing:2px;
+      display:block; margin-top:.3rem;
+    }
+    .hero-by {
+      margin-top:1.2rem;
+      font-family:'DM Mono',monospace;
+      font-size:.75rem; color:var(--muted);
+      display:flex; align-items:center; gap:.8rem;
+    }
+    .hero-by::before { content:'//'; color:var(--green); }
+    .hero-by strong { color:var(--amber); }
+    .hero-right {
+      display:flex; flex-direction:column; align-items:center; gap:1rem;
+    }
+    .badge-hex {
+      position:relative; width:110px; height:110px;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .badge-hex svg { position:absolute; inset:0; width:100%; height:100%; }
+    .badge-hex .hex-inner {
+      position:relative; z-index:1;
+      font-family:'Syne',sans-serif; font-weight:800;
+      font-size:.75rem; text-align:center;
+      color:var(--green); letter-spacing:1px;
+    }
+    .badge-hex .hex-inner span { display:block; font-size:.55rem; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+    .hex-border { stroke:var(--green); stroke-width:1.5; fill:rgba(0,255,136,0.05); animation:hexSpin 12s linear infinite; transform-origin:55px 55px; }
+    @keyframes hexSpin { to { stroke-dashoffset:-100; } }
+    .hex-ring { stroke:rgba(0,255,136,0.2); stroke-width:1; fill:none; animation:hexSpin 20s linear infinite reverse; transform-origin:55px 55px; }
+    .status-online {
+      font-family:'Space Mono',monospace;
+      font-size:.62rem; color:var(--green);
+      display:flex; align-items:center; gap:.5rem;
+      padding:.4rem 1rem;
+      border:1px solid rgba(0,255,136,0.2);
+      border-radius:2px;
+      background:rgba(0,255,136,0.05);
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:1px; background:var(--border);
+      border:1px solid var(--border);
+      animation:fadeUp .8s .1s ease both;
+    }
+    .stat {
+      background:var(--panel);
+      padding:1.5rem 1.2rem;
+      display:flex; flex-direction:column; gap:.4rem;
+      position:relative; overflow:hidden;
+      transition:background .3s;
+    }
+    .stat::after {
+      content:''; position:absolute;
+      top:0; left:0; width:3px; height:100%;
+      background:var(--c, var(--green));
+      opacity:.6;
+    }
+    .stat:hover { background:rgba(0,255,136,0.04); }
+    .stat:nth-child(1) { --c:var(--green); }
+    .stat:nth-child(2) { --c:var(--amber); }
+    .stat:nth-child(3) { --c:#00d4ff; }
+    .stat:nth-child(4) { --c:var(--red); }
+    .stat-val {
+      font-family:'Syne',sans-serif; font-weight:800;
+      font-size:1.8rem; color:#fff; line-height:1;
+    }
+    .stat-label {
+      font-family:'DM Mono',monospace;
+      font-size:.6rem; color:var(--muted);
+      text-transform:uppercase; letter-spacing:2px;
+    }
+    .stat-ico { font-size:.9rem; color:var(--c,var(--green)); margin-bottom:.2rem; }
+
+    /* ── MAIN ACTIONS CARD ── */
+    .section-head {
+      display:flex; align-items:center; gap:1rem;
+      font-family:'Space Mono',monospace;
+      font-size:.62rem; color:var(--muted);
+      text-transform:uppercase; letter-spacing:3px;
+      margin-bottom:1.5rem;
+    }
+    .section-head::after {
+      content:''; flex:1; height:1px;
+      background:linear-gradient(90deg, var(--border2), transparent);
+    }
+    .section-head i { color:var(--green); }
+
+    .actions-grid {
+      display:grid; grid-template-columns:repeat(3,1fr);
+      gap:.8rem;
+      animation:fadeUp .8s .2s ease both;
+    }
+    .act-card {
+      position:relative;
+      padding:2rem 1.5rem;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:2px;
+      text-decoration:none; color:inherit;
+      display:flex; flex-direction:column; gap:1rem;
+      transition:all .3s cubic-bezier(.23,1,.32,1);
+      overflow:hidden;
+    }
+    .act-card::before {
+      content:''; position:absolute;
+      top:0; left:0; right:0; height:2px;
+      background:var(--ac, var(--green));
+      opacity:0; transition:opacity .3s;
+    }
+    .act-card::after {
+      content: attr(data-num);
+      position:absolute; bottom:.8rem; right:1rem;
+      font-family:'Space Mono',monospace;
+      font-size:2.5rem; font-weight:700;
+      color:rgba(0,255,136,0.04);
+      line-height:1;
+    }
+    .act-card:hover::before { opacity:1; }
+    .act-card:hover {
+      border-color:var(--border2);
+      transform:translateY(-4px);
+      box-shadow:0 12px 40px rgba(0,0,0,.5), var(--glow);
+    }
+    .act-card:nth-child(1) { --ac:var(--green); }
+    .act-card:nth-child(2) { --ac:var(--amber); }
+    .act-card:nth-child(3) { --ac:#00d4ff; }
+
+    .act-icon {
+      width:50px; height:50px;
+      border:1px solid var(--border2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.2rem;
+      color:var(--ac,var(--green));
+      background:rgba(0,255,136,0.04);
+    }
+    .act-card:nth-child(2) .act-icon { background:rgba(255,149,0,0.04); border-color:rgba(255,149,0,0.25); }
+    .act-card:nth-child(3) .act-icon { background:rgba(0,212,255,0.04); border-color:rgba(0,212,255,0.25); }
+
+    .act-label {
+      font-family:'Syne',sans-serif; font-weight:700;
+      font-size:1rem; color:#fff;
+    }
+    .act-desc {
+      font-size:.72rem; color:var(--muted); line-height:1.5;
+    }
+    .act-arrow {
+      font-size:.7rem; color:var(--ac,var(--green));
+      display:flex; align-items:center; gap:.5rem;
+      font-family:'Space Mono',monospace;
+    }
+    .act-card:nth-child(2) .act-arrow { color:var(--amber); }
+    .act-card:nth-child(3) .act-arrow { color:#00d4ff; }
+
+    /* ── STATS ROW 2 ── */
+    .stats-row2 {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:.8rem;
+      animation:fadeUp .8s .25s ease both;
+    }
+    .stat2 {
+      padding:1.2rem;
+      background:var(--panel);
+      border:1px solid var(--border);
+      display:flex; align-items:center; gap:.9rem;
+      transition:border-color .3s;
+    }
+    .stat2:hover { border-color:var(--border2); }
+    .stat2-ico {
+      width:38px; height:38px; flex-shrink:0;
+      border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.85rem; color:var(--green);
+    }
+    .stat2-info {}
+    .stat2-val {
+      font-family:'Space Mono',monospace;
+      font-size:1rem; color:#fff; font-weight:700;
+    }
+    .stat2-key {
+      font-size:.58rem; color:var(--muted);
+      text-transform:uppercase; letter-spacing:1.5px;
+      margin-top:2px;
+    }
+
+    /* ── DEPLOY ── */
+    .deploy-grid {
+      display:grid; grid-template-columns:repeat(3,1fr);
+      gap:.6rem;
+      animation:fadeUp .8s .3s ease both;
+    }
+    .dp {
+      display:flex; align-items:center; gap:.9rem;
+      padding:1rem 1.2rem;
+      background:var(--panel);
+      border:1px solid var(--border);
+      text-decoration:none; color:inherit;
+      transition:all .3s;
+    }
+    .dp:hover {
+      border-color:rgba(0,255,136,0.3);
+      background:rgba(0,255,136,0.04);
+    }
+    .dp:hover .dp-name { color:var(--green); }
+    .dp-ico {
+      width:34px; height:34px; flex-shrink:0;
+      border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.85rem; color:var(--muted);
+    }
+    .dp-name {
+      font-family:'Space Mono',monospace;
+      font-size:.68rem; color:var(--white); font-weight:700;
+      letter-spacing:1px; transition:color .3s;
+    }
+    .dp-sub { font-size:.6rem; color:var(--muted); margin-top:2px; }
+    .dp-arr { margin-left:auto; font-size:.6rem; color:var(--muted); opacity:0; transition:opacity .3s, transform .3s; }
+    .dp:hover .dp-arr { opacity:1; transform:translateX(3px); }
+
+    /* ── FEATURES ── */
+    .feat-row {
+      display:grid; grid-template-columns:repeat(3,1fr);
+      gap:.6rem;
+      animation:fadeUp .8s .35s ease both;
+    }
+    .feat {
+      padding:1.5rem 1.2rem;
+      background:var(--panel);
+      border:1px solid var(--border);
+    }
+    .feat-head {
+      display:flex; align-items:center; gap:.7rem;
+      margin-bottom:.7rem;
+    }
+    .feat-head i { color:var(--green); font-size:.9rem; }
+    .feat-ttl {
+      font-family:'Space Mono',monospace;
+      font-size:.7rem; color:#fff; font-weight:700;
+      text-transform:uppercase; letter-spacing:1px;
+    }
+    .feat-txt { font-size:.73rem; color:var(--muted); line-height:1.55; }
+
+    /* ── FOOTER ── */
+    footer {
+      display:flex; align-items:center; justify-content:space-between;
+      padding-top:2rem;
+      border-top:1px solid var(--border);
+      animation:fadeUp .8s .4s ease both;
+      flex-wrap:wrap; gap:1rem;
+    }
+    .footer-brand {
+      font-family:'Syne',sans-serif; font-weight:800;
+      font-size:.85rem; color:var(--green);
+      letter-spacing:2px;
+    }
+    .footer-brand span { color:var(--muted); font-weight:400; font-family:'DM Mono',monospace; font-size:.7rem; }
+    .footer-links { display:flex; align-items:center; gap:1.5rem; }
+    .footer-links a {
+      font-family:'DM Mono',monospace; font-size:.65rem;
+      color:var(--muted); text-decoration:none;
+      transition:color .2s;
+    }
+    .footer-links a:hover { color:var(--green); }
+    .footer-copy { font-size:.62rem; color:rgba(180,220,180,0.25); font-family:'DM Mono',monospace; }
+
+    /* ── GLITCH on title hover ── */
+    .hero-title:hover .hl {
+      animation:glitch .3s ease;
+    }
+    @keyframes glitch {
+      0%   { text-shadow:0 0 40px rgba(0,255,136,0.4); }
+      20%  { text-shadow:3px 0 0 rgba(255,0,0,.5), -3px 0 0 rgba(0,255,255,.5); transform:translateX(2px); }
+      40%  { text-shadow:-3px 0 0 rgba(255,0,0,.5), 3px 0 0 rgba(0,255,255,.5); transform:translateX(-2px); }
+      60%  { text-shadow:3px 0 0 rgba(255,0,0,.3); }
+      80%  { text-shadow:-2px 0 0 rgba(0,255,255,.3); }
+      100% { text-shadow:0 0 40px rgba(0,255,136,0.4); transform:translateX(0); }
+    }
+
+    /* ── TERMINAL BLINK ── */
+    .term-cursor::after { content:'_'; animation:blink 1s step-end infinite; color:var(--green); }
+
+    @media(max-width:768px) {
+      .hero { grid-template-columns:1fr; }
+      .hero-right { display:none; }
+      .stats-row, .stats-row2 { grid-template-columns:repeat(2,1fr); }
+      .actions-grid { grid-template-columns:1fr; }
+      .deploy-grid { grid-template-columns:repeat(2,1fr); }
+      .feat-row { grid-template-columns:1fr; }
+      footer { flex-direction:column; align-items:flex-start; }
+    }
+    @media(max-width:480px) {
+      .deploy-grid { grid-template-columns:1fr; }
+      .topbar-right { display:none; }
+      body { cursor:auto; }
+      #cur, #curR { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cur"></div>
+  <div id="curR"></div>
+  <div class="bg-noise"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-radial"></div>
+  <div class="scanline"></div>
+
+  <div class="wrap">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-dot"></span>
+        <span>SYS/ONLINE</span>
+        <span style="color:rgba(180,220,180,0.2)">|</span>
+        <span>NODE v20</span>
+      </div>
+      <div class="topbar-right">
+        <span>STATUS: <span>OPERATIONAL</span></span>
+        <span>BUILD: <span>2026.1</span></span>
+        <span id="clock">--:--:--</span>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-left">
+        <div class="hero-tag">Session Generator</div>
+        <h1 class="hero-title">
+          <span class="hl term-cursor">HUNTER XMD PRO</span>
+          <span class="sm">POWERED BY OBED TECH DEVELOPER</span>
+        </h1>
+        <div class="hero-by">Built with <strong>hunter-baileys@2.1.1</strong></div>
+      </div>
+      <div class="hero-right">
+        <div class="badge-hex">
+          <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+            <polygon class="hex-ring" points="55,8 95,30 95,74 55,96 15,74 15,30" stroke-dasharray="5,3"/>
+            <polygon class="hex-border" points="55,16 88,35 88,70 55,89 22,70 22,35" stroke-dasharray="8,2"/>
+          </svg>
+          <div class="hex-inner">XMD<span>PRO</span></div>
+        </div>
+        <div class="status-online"><span class="topbar-dot"></span> ALL SYSTEMS ONLINE</div>
+      </div>
+    </section>
+
+    <!-- STATS ROW 1 -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-ico"><i class="fas fa-bolt"></i></div>
+        <div class="stat-val" id="totalPairings">--</div>
+        <div class="stat-label">Total Sessions</div>
+      </div>
+      <div class="stat">
+        <div class="stat-ico"><i class="fas fa-calendar-day"></i></div>
+        <div class="stat-val" id="todayPairings">--</div>
+        <div class="stat-label">Today</div>
+      </div>
+      <div class="stat">
+        <div class="stat-ico"><i class="fas fa-check-double"></i></div>
+        <div class="stat-val" id="successRate">--%</div>
+        <div class="stat-label">Success Rate</div>
+      </div>
+      <div class="stat">
+        <div class="stat-ico"><i class="fas fa-globe"></i></div>
+        <div class="stat-val" id="countriesServed">--</div>
+        <div class="stat-label">Countries</div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div>
+      <div class="section-head"><i class="fas fa-terminal"></i> Connect</div>
+      <div class="actions-grid">
+        <a href="/pair" class="act-card" data-num="01">
+          <div class="act-icon"><i class="fas fa-link"></i></div>
+          <div class="act-label">Pair Code</div>
+          <div class="act-desc">Connect using your phone number. Fastest method — code sent directly to your device.</div>
+          <div class="act-arrow"><i class="fas fa-arrow-right"></i> Generate code</div>
+        </a>
+        <a href="/qr" class="act-card" data-num="02">
+          <div class="act-icon"><i class="fas fa-qrcode"></i></div>
+          <div class="act-label">QR Scan</div>
+          <div class="act-desc">Scan a QR code with your WhatsApp camera to link the session instantly.</div>
+          <div class="act-arrow"><i class="fas fa-arrow-right"></i> Show QR</div>
+        </a>
+        <a href="https://github.com/Obedweb/Hunter-Xmd1/fork" target="_blank" class="act-card" data-num="03">
+          <div class="act-icon"><i class="fab fa-github"></i></div>
+          <div class="act-label">Bot Repo</div>
+          <div class="act-desc">Fork the Hunter XMD Pro repository and deploy your own WhatsApp bot.</div>
+          <div class="act-arrow"><i class="fas fa-arrow-right"></i> View on GitHub</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- STATS ROW 2 -->
+    <div class="stats-row2">
+      <div class="stat2">
+        <div class="stat2-ico"><i class="fas fa-signal"></i></div>
+        <div class="stat2-info">
+          <div class="stat2-val" id="activeUsers">--</div>
+          <div class="stat2-key">Online Now</div>
+        </div>
+      </div>
+      <div class="stat2">
+        <div class="stat2-ico"><i class="fas fa-code-branch"></i></div>
+        <div class="stat2-info">
+          <div class="stat2-val" id="codePairings">--</div>
+          <div class="stat2-key">Code Pairs</div>
+        </div>
+      </div>
+      <div class="stat2">
+        <div class="stat2-ico"><i class="fas fa-qrcode"></i></div>
+        <div class="stat2-info">
+          <div class="stat2-val" id="qrPairings">--</div>
+          <div class="stat2-key">QR Pairs</div>
+        </div>
+      </div>
+      <div class="stat2">
+        <div class="stat2-ico"><i class="fas fa-server"></i></div>
+        <div class="stat2-info">
+          <div class="stat2-val" id="uptime">--</div>
+          <div class="stat2-key">Uptime Days</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPLOY -->
+    <div>
+      <div class="section-head"><i class="fas fa-cloud-upload-alt"></i> Deploy Platforms</div>
+      <div class="deploy-grid">
+        <a href="https://heroku.com/deploy?template=https://github.com/Obedweb/Hunter-Xmd1" target="_blank" class="dp">
+          <div class="dp-ico"><i class="fas fa-cube"></i></div>
+          <div><div class="dp-name">HEROKU</div><div class="dp-sub">Cloud platform</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+        <a href="https://render.com/deploy?repo=https://github.com/Obedweb/Hunter-Xmd1" target="_blank" class="dp">
+          <div class="dp-ico"><i class="fas fa-server"></i></div>
+          <div><div class="dp-name">RENDER</div><div class="dp-sub">Free tier ready</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+        <a href="https://vercel.com/new/clone?repository-url=https://github.com/Obedweb/Hunter-Xmd1" target="_blank" class="dp">
+          <div class="dp-ico">▲</div>
+          <div><div class="dp-name">VERCEL</div><div class="dp-sub">Serverless deploy</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+        <a href="https://replit.com/github/Obedweb/Hunter-Xmd1" target="_blank" class="dp">
+          <div class="dp-ico"><i class="fas fa-code"></i></div>
+          <div><div class="dp-name">REPLIT</div><div class="dp-sub">Browser IDE</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+        <a href="https://bot-hosting.net/" target="_blank" class="dp">
+          <div class="dp-ico"><i class="fas fa-robot"></i></div>
+          <div><div class="dp-name">PANEL</div><div class="dp-sub">Pterodactyl</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+        <a href="https://daki.cc/" target="_blank" class="dp">
+          <div class="dp-ico"><i class="fas fa-cloud"></i></div>
+          <div><div class="dp-name">DAKI.CC</div><div class="dp-sub">Fast bot hosting</div></div>
+          <i class="fas fa-external-link-alt dp-arr"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div>
+      <div class="section-head"><i class="fas fa-microchip"></i> System Specs</div>
+      <div class="feat-row">
+        <div class="feat">
+          <div class="feat-head"><i class="fas fa-shield-alt"></i><span class="feat-ttl">E2E Encrypted</span></div>
+          <div class="feat-txt">All session data uses end-to-end encryption. Credentials never stored on server after pairing.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-head"><i class="fas fa-tachometer-alt"></i><span class="feat-ttl">Sub-30s Pairing</span></div>
+          <div class="feat-txt">Optimised connection pipeline delivers your session in under 30 seconds using latest Baileys API.</div>
+        </div>
+        <div class="feat">
+          <div class="feat-head"><i class="fas fa-layer-group"></i><span class="feat-ttl">Multi-Platform</span></div>
+          <div class="feat-txt">Deploy to Heroku, Render, Vercel or any Node.js host. One-click deploys available for all platforms.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <div>
+        <div class="footer-brand">HUNTER XMD PRO <span>/ OBED TECH DEVELOPER</span></div>
+        <div class="footer-copy" style="margin-top:.4rem">© 2026 — hunter-baileys v2.1.1</div>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/Obedweb/Hunter-Xmd1" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+        <a href="/pair">Pair Code</a>
+        <a href="/qr">QR Scan</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+  // Clock
+  (function tick(){
+    const d=new Date();
+    document.getElementById('clock').textContent=
+      d.getHours().toString().padStart(2,'0')+':'+
+      d.getMinutes().toString().padStart(2,'0')+':'+
+      d.getSeconds().toString().padStart(2,'0');
+    setTimeout(tick,1000);
+  })();
+
+  // Cursor
+  const cur=document.getElementById('cur'),curR=document.getElementById('curR');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+  (function lp(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(lp);})();
+  document.querySelectorAll('a,.stat,.stat2,.dp,.feat').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{cur.style.width='10px';cur.style.height='10px';curR.style.width='40px';curR.style.height='40px';curR.style.borderColor='rgba(0,255,136,0.6)';});
+    el.addEventListener('mouseleave',()=>{cur.style.width='6px';cur.style.height='6px';curR.style.width='28px';curR.style.height='28px';curR.style.borderColor='rgba(0,255,136,0.4)';});
+  });
+
+  // Stats
+  function animVal(el,end,dur,suf){suf=suf||'';const s=performance.now();(function step(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.floor(end*e).toLocaleString()+suf;if(p<1)requestAnimationFrame(step);})(s);}
+  async function fetchStats(){
+    try{
+      const d=await(await fetch('/api/stats')).json();
+      animVal(document.getElementById('totalPairings'),d.totalPairings,2000);
+      animVal(document.getElementById('todayPairings'),d.todayPairings,1500);
+      document.getElementById('successRate').textContent=parseFloat(d.successRate).toFixed(1)+'%';
+      animVal(document.getElementById('countriesServed'),d.countriesServed,1600);
+      animVal(document.getElementById('activeUsers'),d.activeUsers,1000);
+      animVal(document.getElementById('codePairings'),d.codePairings,1800);
+      animVal(document.getElementById('qrPairings'),d.qrPairings,1800);
+      animVal(document.getElementById('uptime'),d.uptimeDays,2000);
+    }catch(e){}
+  }
+  fetchStats();setInterval(fetchStats,30000);
+  </script>
+</body>
+</html>
