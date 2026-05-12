@@ -1,15 +1,49 @@
 const express = require('express');
 const app = express();
 const path = require('path');
-const bodyParser = require("body-parser");
+const bodyParser = require('body-parser');
 const fs = require('fs');
+
 // Render uses PORT env var — default to 10000 (Render's standard free tier port)
 const PORT = process.env.PORT || 10000;
 
+require('events').EventEmitter.defaultMaxListeners = 500;
+
+// ── Crash guard: catch AES-GCM auth errors and other unhandled exceptions ─────
+process.on('uncaughtException', (err) => {
+    if (err.message && err.message.includes('unable to authenticate data')) {
+        console.warn('[WARN] AES-GCM auth error caught (stale/corrupt session) — server kept alive.');
+    } else {
+        console.error('[FATAL] Uncaught exception:', err);
+        // Re-throw truly unexpected errors so Render can restart cleanly
+        process.exit(1);
+    }
+});
+
+process.on('unhandledRejection', (reason) => {
+    if (reason && reason.message && reason.message.includes('unable to authenticate data')) {
+        console.warn('[WARN] AES-GCM unhandled rejection (stale session) — ignored.');
+    } else {
+        console.error('[WARN] Unhandled promise rejection:', reason);
+    }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Clean up any stale temp sessions left over from a previous crash ──────────
+const tempDir = path.join(__dirname, 'temp');
+try {
+    if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(tempDir);
+    console.log('[INIT] Cleaned up stale temp sessions.');
+} catch (e) {
+    console.warn('[INIT] Could not clean temp dir:', e.message);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 let server = require('./qr'),
     code = require('./pair');
-
-require('events').EventEmitter.defaultMaxListeners = 500;
 
 const statsFile = path.join(__dirname, 'stats.json');
 
@@ -41,7 +75,15 @@ let stats = loadStats();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// ── Render keep-alive & health check ──────────────────────────────
+// ── No-cache headers ──────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
+
+// ── Render keep-alive & health check ─────────────────────────────────────────
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime(), service: 'HUNTER XMD PRO' });
 });
@@ -53,17 +95,14 @@ if (process.env.RENDER_EXTERNAL_URL) {
         const url = process.env.RENDER_EXTERNAL_URL + '/health';
         https.get(url, (res) => {
             console.log(`Keep-alive ping: ${res.statusCode}`);
-        }).on('error', () => {});
+        }).on('error', (err) => {
+            console.warn('[WARN] Keep-alive ping failed:', err.message);
+        });
     }, 14 * 60 * 1000);
 }
-// ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
-app.use((req, res, next) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    next();
-});
+app.use('/qr-image', server);
 
 app.use('/qr', (req, res, next) => {
     stats.totalPairings++;
@@ -106,7 +145,9 @@ app.get('/api/stats', (req, res) => {
 
     const uniqueCountries = Object.keys(stats.countries).length;
 
-    const successRate = stats.totalPairings > 0 ? Math.min(98.5 + Math.random() * 1.5, 100).toFixed(1) : '99.9';
+    const successRate = stats.totalPairings > 0
+        ? Math.min(98.5 + Math.random() * 1.5, 100).toFixed(1)
+        : '99.9';
 
     res.json({
         totalPairings: stats.totalPairings + 12847,
@@ -123,11 +164,11 @@ app.get('/api/stats', (req, res) => {
     });
 });
 
-app.use('/pair', async (req, res, next) => {
+app.use('/pair', (req, res) => {
     res.sendFile(path.join(__dirname, 'pair.html'));
 });
 
-app.use('/', async (req, res, next) => {
+app.use('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'main.html'));
 });
 
